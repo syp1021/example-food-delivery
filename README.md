@@ -137,9 +137,10 @@ http localhost:8085/histories/1
 
 # 체크포인트 구현:
 
+
 ## 1. Saga (Pub / Sub)
 kafka를 통한 Pub/Sub 비동기 통신
-- Publish 예제 코드
+- Publish 코드
 ```
     @PostPersist
     public void onPostPersist() {
@@ -148,7 +149,7 @@ kafka를 통한 Pub/Sub 비동기 통신
     }
     
 ```
-- Subscribe 예제 코드
+- Subscribe 코드
 ```
 @Service
 @Transactional
@@ -176,4 +177,89 @@ public class PolicyHandler {
     }
 
 ```
+
+## 2. CQRS
+History를 통한 오더상태 업데이트 정보 조회
+- History Aggregate
+```
+package delivery.prj.domain;
+
+import java.util.Date;
+import java.util.List;
+import javax.persistence.*;
+import lombok.Data;
+
+@Entity
+@Table(name = "History_table")
+@Data
+public class History {
+
+    @Id
+    @GeneratedValue(strategy=GenerationType.AUTO)
+    private Long id;
+
+    private Long orderId;
+    private Long userId;
+    private Long storeId;
+    private Long menuId;
+    private String qty;
+    private String orderStatus;
+    private String storeStatus;
+    private String deliveryStatus;
+}
+
+```
+- History View Handler
+```
+package delivery.prj.infra;
+
+import delivery.prj.config.kafka.KafkaProcessor;
+import delivery.prj.domain.*;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.stream.annotation.StreamListener;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.stereotype.Service;
+
+@Service
+public class HistoryViewHandler {
+
+    @Autowired
+    private HistoryRepository historyRepository;
+
+    @StreamListener(KafkaProcessor.INPUT)
+    public void whenOrderPlaced_then_CREATE_1(
+        @Payload OrderPlaced orderPlaced
+    ) {
+        try {
+            if (!orderPlaced.validate()) return;
+
+            // view 객체 생성
+            History history = new History();
+            // view 객체에 이벤트의 Value 를 set 함
+            history.setUserId(orderPlaced.getUserId());
+            history.setStoreId(orderPlaced.getStoreId());
+            history.setMenuId(orderPlaced.getMenuId());
+            history.setQty(orderPlaced.getQty());
+            history.setOrderId(orderPlaced.getId());
+            history.setOrderStatus("주문완료");
+            // view 레파지 토리에 save
+            historyRepository.save(history);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+- 주문 command
+![image](https://user-images.githubusercontent.com/93691092/212068554-1e0e894a-e956-4632-ac8e-a39cc875837c.png)
+- kafka monitoring 
+![image](https://user-images.githubusercontent.com/93691092/212069459-ed71c1c6-c538-4559-89cb-dd07dc59d8ea.png)
+- update 된 history 
+![image](https://user-images.githubusercontent.com/93691092/212069497-69a4a1f2-0d62-4a51-bd9b-c437e85c41bc.png)
+
+
+
 
