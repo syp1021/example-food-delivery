@@ -296,11 +296,11 @@ public interface StoreOrderRepository
     ![image](https://user-images.githubusercontent.com/93691092/212070975-e66e5c99-93dd-4302-9950-fb3ee31fd880.png)
 
 3-2. 요리시작 시 event 수신 후 사용자 앞 notify 예제 (Correlation : orderId)
-- 요리시작 event publish (from StoreOrder)
+- 요리시작 event publish (StoreOrder)
     ![image](https://user-images.githubusercontent.com/93691092/212071605-0b2f49d4-7d3a-473c-9a92-266df55a80eb.png)
 - kafak monitoring
     ![image](https://user-images.githubusercontent.com/93691092/212071817-b09c267b-4f1b-4323-b93a-8a8029079f8b.png)
-- 요리시작 event 수신 (from customer.PolicyHandler)
+- 요리시작 event 수신 (customer.PolicyHandler)
 ```
     @StreamListener(
         value = KafkaProcessor.INPUT,
