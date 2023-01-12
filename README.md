@@ -261,7 +261,7 @@ public class HistoryViewHandler {
 ![image](https://user-images.githubusercontent.com/93691092/212069497-69a4a1f2-0d62-4a51-bd9b-c437e85c41bc.png)
 
 ## 3. Compensation / Correlation
-주문 시 상점정보에 update 하는 예제 (Correlation : orderId)
+3-1. 주문 시 상점정보에 update 하는 예제 (Correlation : orderId)
 - Store Order Repository 코드
 ```
 @RepositoryRestResource(
@@ -292,5 +292,35 @@ public interface StoreOrderRepository
 ```
 - 상점 정보 update 코드
 ![image](https://user-images.githubusercontent.com/93691092/212070887-50ac43dd-922d-4eb0-89ca-9e45566c7e50.png)
-- update 
+- update 결과 확인
 ![image](https://user-images.githubusercontent.com/93691092/212070975-e66e5c99-93dd-4302-9950-fb3ee31fd880.png)
+
+3-2. 요리시작 시 event 수신 후 사용자 앞 notify 예제 (Correlation : orderId)
+- 요리시작 event publish (from StoreOrder)
+![image](https://user-images.githubusercontent.com/93691092/212071605-0b2f49d4-7d3a-473c-9a92-266df55a80eb.png)
+- kafak monitoring
+![image](https://user-images.githubusercontent.com/93691092/212071817-b09c267b-4f1b-4323-b93a-8a8029079f8b.png)
+- 요리시작 event 수신 (from customer.PolicyHandler)
+```
+    @StreamListener(
+        value = KafkaProcessor.INPUT,
+        condition = "headers['type']=='CookStarted'"
+    )
+    public void wheneverCookStarted_NotifyViaKakao(
+        @Payload CookStarted cookStarted
+    ) {
+        CookStarted event = cookStarted;
+        System.out.println(
+            "\n\n##### listener NotifyViaKakao : " + cookStarted + "\n\n"
+        );
+
+        Notification.notifyViaKakao(event);
+    }
+```
+- 주문정보 notify 코드 
+![image](https://user-images.githubusercontent.com/93691092/212072396-a8c3ca1c-9ddd-4537-8014-a910e83c7c0b.png)
+- notify 결과 확인
+![image](https://user-images.githubusercontent.com/93691092/212072463-aa39a423-42ac-4a8c-acc9-fecaed72c926.png)
+
+
+
