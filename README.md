@@ -140,7 +140,7 @@ http localhost:8085/histories/1
 
 ## 1. Saga (Pub / Sub)
 kafka를 통한 Pub/Sub 비동기 통신
-- Publish 코드
+- Publish 예제 코드
 ```
     @PostPersist
     public void onPostPersist() {
@@ -149,7 +149,7 @@ kafka를 통한 Pub/Sub 비동기 통신
     }
     
 ```
-- Subscribe 코드
+- Subscribe 예제 코드
 ```
 @Service
 @Transactional
@@ -260,6 +260,37 @@ public class HistoryViewHandler {
 - update 된 history 
 ![image](https://user-images.githubusercontent.com/93691092/212069497-69a4a1f2-0d62-4a51-bd9b-c437e85c41bc.png)
 
+## 3. Compensation / Correlation
+주문 시 상점정보에 update 하는 예제 (Correlation : orderId)
+- Store Order Repository 코드
+```
+@RepositoryRestResource(
+    collectionResourceRel = "storeOrders",
+    path = "storeOrders"
+)
+public interface StoreOrderRepository
+    extends PagingAndSortingRepository<StoreOrder, Long> {}
 
+```
+- 주문 event 수신 코드
+```
+    @StreamListener(
+        value = KafkaProcessor.INPUT,
+        condition = "headers['type']=='OrderPlaced'"
+    )
+    public void wheneverOrderPlaced_OrderInfoTransfer(
+        @Payload OrderPlaced orderPlaced
+    ) {
+        OrderPlaced event = orderPlaced;
+        System.out.println(
+            "\n\n##### listener OrderInfoTransfer : " + orderPlaced + "\n\n"
+        );
 
-
+        // Sample Logic //
+        StoreOrder.orderInfoTransfer(event);
+    }
+```
+- 상점 정보 update 코드
+![image](https://user-images.githubusercontent.com/93691092/212070887-50ac43dd-922d-4eb0-89ca-9e45566c7e50.png)
+- update 
+![image](https://user-images.githubusercontent.com/93691092/212070975-e66e5c99-93dd-4302-9950-fb3ee31fd880.png)
